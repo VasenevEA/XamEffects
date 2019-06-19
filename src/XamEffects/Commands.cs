@@ -76,13 +76,51 @@ namespace XamEffects {
             return view.GetValue(LongTapParameterProperty);
         }
 
+        public static readonly BindableProperty LongPressProperty =
+            BindableProperty.CreateAttached(
+                "LongPress",
+                typeof(ICommand),
+                typeof(Commands),
+                default(ICommand),
+                propertyChanged: PropertyChanged
+            );
+
+        public static void SetLongPress(BindableObject view, ICommand value)
+        {
+            view.SetValue(LongPressProperty, value);
+        }
+
+        public static ICommand GetLongPress(BindableObject view)
+        {
+            return (ICommand)view.GetValue(LongPressProperty);
+        }
+
+        public static readonly BindableProperty LongPressParameterProperty =
+            BindableProperty.CreateAttached(
+                "LongPressParameter",
+                typeof(object),
+                typeof(Commands),
+                default(object),
+                propertyChanged: PropertyChanged
+            );
+
+        public static void SetLongPressParameter(BindableObject view, object value)
+        {
+            view.SetValue(LongPressParameterProperty, value);
+        }
+
+        public static object GetLongPressParameter(BindableObject view)
+        {
+            return view.GetValue(LongPressParameterProperty);
+        }
+
         static void PropertyChanged(BindableObject bindable, object oldValue, object newValue) {
             if (!(bindable is View view))
                 return;
 
             var eff = view.Effects.FirstOrDefault(e => e is CommandsRoutingEffect);
 
-            if (GetTap(bindable) != null || GetLongTap(bindable) != null) {
+            if (GetTap(bindable) != null || GetLongTap(bindable) != null || GetLongPress(bindable) != null ) {
                 view.InputTransparent = false;
 
                 if (eff != null) return;

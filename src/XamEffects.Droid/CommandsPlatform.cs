@@ -8,11 +8,14 @@ using XamEffects.Droid;
 using View = Android.Views.View;
 using System.Threading;
 using XamEffects.Droid.GestureCollectors;
+using System.Threading.Tasks;
 
 [assembly: ExportEffect(typeof(CommandsPlatform), nameof(Commands))]
 
-namespace XamEffects.Droid {
-    public class CommandsPlatform : PlatformEffect {
+namespace XamEffects.Droid
+{
+    public class CommandsPlatform : PlatformEffect
+    {
         public View View => Control ?? Container;
         public bool IsDisposed => (Container as IVisualElementRenderer)?.Element == null;
 
@@ -20,24 +23,44 @@ namespace XamEffects.Droid {
         readonly Rect _rect = new Rect();
         readonly int[] _location = new int[2];
 
-        public static void Init() {
+        public static void Init()
+        {
         }
 
-        protected override void OnAttached() {
+        protected override void OnAttached()
+        {
             View.Clickable = true;
             View.LongClickable = true;
             View.SoundEffectsEnabled = true;
             TouchCollector.Add(View, OnTouch);
         }
 
-        void OnTouch(View.TouchEventArgs args) {
-            switch (args.Event.Action) {
+        CancellationTokenSource disableLongPress;
+        void OnTouch(View.TouchEventArgs args)
+        {
+            switch (args.Event.Action)
+            {
                 case MotionEventActions.Down:
                     _tapTime = DateTime.Now;
+                    disableLongPress?.Cancel();
+                    disableLongPress = new CancellationTokenSource();
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await Task.Delay(800, disableLongPress.Token);
+                            Device.BeginInvokeOnMainThread(() => LongPressHandler());
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    });
                     break;
 
                 case MotionEventActions.Up:
-                    if (IsViewInBounds((int)args.Event.RawX, (int)args.Event.RawY)) {
+                    disableLongPress?.Cancel();
+                    if (IsViewInBounds((int)args.Event.RawX, (int)args.Event.RawY))
+                    {
                         var range = (DateTime.Now - _tapTime).TotalMilliseconds;
                         if (range > 800)
                             LongClickHandler();
@@ -48,24 +71,28 @@ namespace XamEffects.Droid {
             }
         }
 
-        bool IsViewInBounds(int x, int y) {
+        bool IsViewInBounds(int x, int y)
+        {
             View.GetDrawingRect(_rect);
             View.GetLocationOnScreen(_location);
             _rect.Offset(_location[0], _location[1]);
             return _rect.Contains(x, y);
         }
 
-        void ClickHandler() {
+        void ClickHandler()
+        {
             var cmd = Commands.GetTap(Element);
             var param = Commands.GetTapParameter(Element);
             if (cmd?.CanExecute(param) ?? false)
                 cmd.Execute(param);
         }
 
-        void LongClickHandler() {
+        void LongClickHandler()
+        {
             var cmd = Commands.GetLongTap(Element);
 
-            if (cmd == null) {
+            if (cmd == null)
+            {
                 ClickHandler();
                 return;
             }
@@ -75,7 +102,22 @@ namespace XamEffects.Droid {
                 cmd.Execute(param);
         }
 
-        protected override void OnDetached() {
+        void LongPressHandler()
+        {
+            var cmd = Commands.GetLongPress(Element);
+
+            if (cmd == null)
+            {
+                ClickHandler();
+                return;
+            }
+            var param = Commands.GetLongPressParameter(Element);
+            if (cmd.CanExecute(param))
+                cmd.Execute(param);
+        }
+
+        protected override void OnDetached()
+        {
             if (IsDisposed) return;
             TouchCollector.Delete(View, OnTouch);
         }

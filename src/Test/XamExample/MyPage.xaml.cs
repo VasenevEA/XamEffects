@@ -12,7 +12,12 @@ namespace XamExample {
             var c = 0;
             Commands.SetTap(touch, new Command(() => {
                 c++;
-                text.Text = c.ToString();
+                text.Text = $"{c} Tap";
+            }));
+            Commands.SetLongPress(touch, new Command(() =>
+            {
+                c++;
+                text.Text = $"{c} Long Press";
             }));
         }
     }
