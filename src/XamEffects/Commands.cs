@@ -9,6 +9,44 @@ namespace XamEffects {
         public static void Init() {
         }
 
+        public static readonly BindableProperty LongPressDelayProperty =
+            BindableProperty.CreateAttached(
+                "LongPressDelay",
+                typeof(int),
+                typeof(int),
+                800,
+                propertyChanged: PropertyChanged
+            );
+
+        public static void SetLongPressDelay(BindableObject view, int value)
+        {
+            view.SetValue(LongPressDelayProperty, value);
+        }
+
+        public static int GetLongPressDelay(BindableObject view)
+        {
+            return (int)view.GetValue(LongPressDelayProperty);
+        }
+
+        public static readonly BindableProperty LongTapDelayProperty =
+            BindableProperty.CreateAttached(
+                "LongTapDelay",
+                typeof(int),
+                typeof(int),
+                800,
+                propertyChanged: PropertyChanged
+            );
+
+        public static void SetLongTapDelay(BindableObject view, int value)
+        {
+            view.SetValue(LongTapDelayProperty, value);
+        }
+
+        public static int GetLongTapDelay(BindableObject view)
+        {
+            return (int)view.GetValue(LongTapDelayProperty);
+        }
+
         public static readonly BindableProperty TapProperty =
             BindableProperty.CreateAttached(
                 "Tap",

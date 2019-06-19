@@ -36,6 +36,7 @@ namespace XamEffects.Droid
         }
 
         CancellationTokenSource disableLongPress;
+        bool isLongPressActive = false;
         void OnTouch(View.TouchEventArgs args)
         {
             switch (args.Event.Action)
@@ -43,13 +44,15 @@ namespace XamEffects.Droid
                 case MotionEventActions.Down:
                     _tapTime = DateTime.Now;
                     disableLongPress?.Cancel();
+                    isLongPressActive = false;
                     disableLongPress = new CancellationTokenSource();
                     Task.Run(async () =>
                     {
                         try
                         {
-                            await Task.Delay(800, disableLongPress.Token);
+                            await Task.Delay(Commands.GetLongPressDelay(Element), disableLongPress.Token);
                             Device.BeginInvokeOnMainThread(() => LongPressHandler());
+                            isLongPressActive = true;
                         }
                         catch (Exception)
                         {
@@ -62,9 +65,9 @@ namespace XamEffects.Droid
                     if (IsViewInBounds((int)args.Event.RawX, (int)args.Event.RawY))
                     {
                         var range = (DateTime.Now - _tapTime).TotalMilliseconds;
-                        if (range > 800)
+                        if (range > Commands.GetLongTapDelay(Element))
                             LongClickHandler();
-                        else
+                        else if (!isLongPressActive)
                             ClickHandler();
                     }
                     break;
