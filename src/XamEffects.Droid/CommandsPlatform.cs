@@ -71,6 +71,9 @@ namespace XamEffects.Droid
                             ClickHandler();
                     }
                     break;
+                default:
+                    disableLongPress?.Cancel();
+                    break;
             }
         }
 
