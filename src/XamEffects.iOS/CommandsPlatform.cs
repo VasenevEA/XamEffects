@@ -8,6 +8,8 @@ using XamEffects;
 using XamEffects.iOS;
 using XamEffects.iOS.GestureCollectors;
 using XamEffects.iOS.GestureRecognizers;
+using System.Threading;
+using System.Threading.Tasks;
 
 [assembly: ExportEffect(typeof(CommandsPlatform), nameof(Commands))]
 
@@ -18,8 +20,10 @@ namespace XamEffects.iOS {
         DateTime _tapTime;
         ICommand _tapCommand;
         ICommand _longCommand;
+        ICommand _longPressCommand;
         object _tapParameter;
         object _longParameter;
+        object _longPressParameter;
 
         protected override void OnAttached() {
             View.UserInteractionEnabled = true;
@@ -28,6 +32,8 @@ namespace XamEffects.iOS {
             UpdateTapParameter();
             UpdateLongTap();
             UpdateLongTapParameter();
+            UpdateLongPress();
+            UpdateLongPressParameter();
 
             TouchGestureCollector.Add(View, OnTouch);
         }
@@ -36,18 +42,36 @@ namespace XamEffects.iOS {
             TouchGestureCollector.Delete(View, OnTouch);
         }
 
+        CancellationTokenSource disableLongPress;
+        bool isLongPressActive = false;
         void OnTouch(TouchGestureRecognizer.TouchArgs e) {
             switch (e.State) {
                 case TouchGestureRecognizer.TouchState.Started:
                     _tapTime = DateTime.Now;
+                    disableLongPress?.Cancel();
+                    isLongPressActive = false;
+                    disableLongPress = new CancellationTokenSource();
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await Task.Delay(Commands.GetLongPressDelay(Element), disableLongPress.Token);
+                            Device.BeginInvokeOnMainThread(() => LongPressHandler());
+                            isLongPressActive = true;
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    });
                     break;
 
                 case TouchGestureRecognizer.TouchState.Ended:
+                    disableLongPress?.Cancel();
                     if (e.Inside) {
                         var range = (DateTime.Now - _tapTime).TotalMilliseconds;
-                        if (range > 800)
+                        if (range > Commands.GetLongTapDelay(Element))
                             LongClickHandler();
-                        else
+                        else if(!isLongPressActive)
                             ClickHandler();
                     }
                     break;
@@ -69,6 +93,14 @@ namespace XamEffects.iOS {
                 _longCommand.Execute(_longParameter);
         }
 
+        void LongPressHandler()
+        {
+            if (_longPressCommand == null)
+                ClickHandler();
+            else if (_longPressCommand.CanExecute(_longPressCommand))
+                _longPressCommand.Execute(_longPressCommand);
+        }
+
         protected override void OnElementPropertyChanged(PropertyChangedEventArgs args) {
             base.OnElementPropertyChanged(args);
 
@@ -80,6 +112,10 @@ namespace XamEffects.iOS {
                 UpdateLongTap();
             else if (args.PropertyName == Commands.LongTapParameterProperty.PropertyName)
                 UpdateLongTapParameter();
+            else if (args.PropertyName == Commands.LongPressProperty.PropertyName)
+                UpdateLongPress();
+            else if (args.PropertyName == Commands.LongPressParameterProperty.PropertyName)
+                UpdateLongPressParameter();
         }
 
         void UpdateTap() {
@@ -96,6 +132,16 @@ namespace XamEffects.iOS {
 
         void UpdateLongTapParameter() {
             _longParameter = Commands.GetLongTapParameter(Element);
+        }
+
+        void UpdateLongPress()
+        {
+            _longPressCommand = Commands.GetLongPress(Element);
+        }
+
+        void UpdateLongPressParameter()
+        {
+            _longPressParameter = Commands.GetLongPressParameter(Element);
         }
 
         public static void Init() {
