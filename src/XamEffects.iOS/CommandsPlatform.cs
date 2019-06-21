@@ -48,6 +48,31 @@ namespace XamEffects.iOS
 
         CancellationTokenSource disableLongPress;
         bool isLongPressActive = false;
+
+        void StartLongPressWaiter()
+        {
+            isLongPressActive = false;
+            disableLongPress?.Cancel();
+            disableLongPress = new CancellationTokenSource();
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(Commands.GetLongPressDelay(Element), disableLongPress.Token);
+                    Device.BeginInvokeOnMainThread(() => LongPressHandler());
+                    isLongPressActive = true;
+                }
+                catch (Exception)
+                {
+                }
+            });
+        }
+
+        void StopLongPressWaiter()
+        {
+            disableLongPress?.Cancel();
+        }
+
         void OnTouch(TouchGestureRecognizer.TouchArgs e)
         {
             System.Diagnostics.Debug.WriteLine(e.State);
@@ -55,25 +80,11 @@ namespace XamEffects.iOS
             {
                 case TouchGestureRecognizer.TouchState.Started:
                     _tapTime = DateTime.Now;
-                    disableLongPress?.Cancel();
-                    isLongPressActive = false;
-                    disableLongPress = new CancellationTokenSource();
-                    Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await Task.Delay(Commands.GetLongPressDelay(Element), disableLongPress.Token);
-                            Device.BeginInvokeOnMainThread(() => LongPressHandler());
-                            isLongPressActive = true;
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    });
+                    StartLongPressWaiter();
                     break;
 
                 case TouchGestureRecognizer.TouchState.Ended:
-                    disableLongPress?.Cancel();
+                    StopLongPressWaiter();
                     if (e.Inside)
                     {
                         var range = (DateTime.Now - _tapTime).TotalMilliseconds;
@@ -83,9 +94,8 @@ namespace XamEffects.iOS
                             ClickHandler();
                     }
                     break;
-
                 default:
-                    disableLongPress?.Cancel();
+                    StopLongPressWaiter();
                     break;
 
             }

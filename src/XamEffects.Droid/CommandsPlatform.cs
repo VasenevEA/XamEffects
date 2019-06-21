@@ -37,31 +37,42 @@ namespace XamEffects.Droid
 
         CancellationTokenSource disableLongPress;
         bool isLongPressActive = false;
+
+        void StartLongPressWaiter()
+        {
+            isLongPressActive = false;
+            disableLongPress?.Cancel();
+            disableLongPress = new CancellationTokenSource();
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(Commands.GetLongPressDelay(Element), disableLongPress.Token);
+                    Device.BeginInvokeOnMainThread(() => LongPressHandler());
+                    isLongPressActive = true;
+                }
+                catch (Exception)
+                {
+                }
+            });
+        }
+        void StopLongPressWaiter()
+        {
+            disableLongPress?.Cancel();
+        }
+
         void OnTouch(View.TouchEventArgs args)
         {
+            System.Diagnostics.Debug.WriteLine(args.Event.Action);
             switch (args.Event.Action)
             {
                 case MotionEventActions.Down:
                     _tapTime = DateTime.Now;
-                    disableLongPress?.Cancel();
-                    isLongPressActive = false;
-                    disableLongPress = new CancellationTokenSource();
-                    Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await Task.Delay(Commands.GetLongPressDelay(Element), disableLongPress.Token);
-                            Device.BeginInvokeOnMainThread(() => LongPressHandler());
-                            isLongPressActive = true;
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    });
+                    StartLongPressWaiter();
                     break;
 
                 case MotionEventActions.Up:
-                    disableLongPress?.Cancel();
+                    StopLongPressWaiter();
                     if (IsViewInBounds((int)args.Event.RawX, (int)args.Event.RawY))
                     {
                         var range = (DateTime.Now - _tapTime).TotalMilliseconds;
@@ -71,8 +82,10 @@ namespace XamEffects.Droid
                             ClickHandler();
                     }
                     break;
+                case MotionEventActions.Move:
+                    break;
                 default:
-                    disableLongPress?.Cancel();
+                    StopLongPressWaiter();
                     break;
             }
         }
