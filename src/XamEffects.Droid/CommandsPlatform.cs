@@ -81,11 +81,13 @@ namespace XamEffects.Droid
                         else if (!isLongPressActive)
                             ClickHandler();
                     }
+                    CancelClickHandler();
                     break;
                 case MotionEventActions.Move:
                     break;
                 default:
                     StopLongPressWaiter();
+                    CancelClickHandler();
                     break;
             }
         }
@@ -102,6 +104,14 @@ namespace XamEffects.Droid
         {
             var cmd = Commands.GetTap(Element);
             var param = Commands.GetTapParameter(Element);
+            if (cmd?.CanExecute(param) ?? false)
+                cmd.Execute(param);
+        }
+
+        void CancelClickHandler()
+        {
+            var cmd = Commands.GetCancelTap(Element);
+            var param = Commands.GetCancelTapParameter(Element);
             if (cmd?.CanExecute(param) ?? false)
                 cmd.Execute(param);
         }

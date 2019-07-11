@@ -23,9 +23,11 @@ namespace XamEffects.iOS
         ICommand _tapCommand;
         ICommand _longCommand;
         ICommand _longPressCommand;
+        ICommand _cancelTapCommand;
         object _tapParameter;
         object _longParameter;
         object _longPressParameter;
+        object _cancelTapParameter;
 
         protected override void OnAttached()
         {
@@ -37,6 +39,8 @@ namespace XamEffects.iOS
             UpdateLongTapParameter();
             UpdateLongPress();
             UpdateLongPressParameter();
+            UpdateCancelTap();
+            UpdateCancelTapParameter();
 
             TouchGestureCollector.Add(View, OnTouch);
         }
@@ -92,10 +96,13 @@ namespace XamEffects.iOS
                             LongClickHandler();
                         else if (!isLongPressActive)
                             ClickHandler();
+
+                        CancelClickHandler();
                     }
                     break;
                 default:
                     StopLongPressWaiter();
+                    CancelClickHandler();
                     break;
 
             }
@@ -119,8 +126,16 @@ namespace XamEffects.iOS
         {
             if (_longPressCommand == null)
                 ClickHandler();
-            else if (_longPressCommand.CanExecute(_longPressCommand))
-                _longPressCommand.Execute(_longPressCommand);
+            else if (_longPressCommand.CanExecute(_longPressParameter))
+                _longPressCommand.Execute(_longPressParameter);
+        }
+
+        void CancelClickHandler()
+        {
+            var cmd = Commands.GetCancelTap(Element);
+            var param = Commands.GetCancelTapParameter(Element);
+            if (cmd?.CanExecute(param) ?? false)
+                cmd.Execute(param);
         }
 
         protected override void OnElementPropertyChanged(PropertyChangedEventArgs args)
@@ -139,6 +154,10 @@ namespace XamEffects.iOS
                 UpdateLongPress();
             else if (args.PropertyName == Commands.LongPressParameterProperty.PropertyName)
                 UpdateLongPressParameter();
+            else if (args.PropertyName == Commands.CancelTapProperty.PropertyName)
+                UpdateCancelTap();
+            else if (args.PropertyName == Commands.CancelTapParameterProperty.PropertyName)
+                UpdateCancelTapParameter();
         }
 
         void UpdateTap()
@@ -171,6 +190,15 @@ namespace XamEffects.iOS
             _longPressParameter = Commands.GetLongPressParameter(Element);
         }
 
+        void UpdateCancelTap()
+        {
+            _cancelTapCommand = Commands.GetCancelTap(Element);
+        }
+
+        void UpdateCancelTapParameter()
+        {
+            _cancelTapParameter = Commands.GetCancelTapParameter(Element);
+        }
         public static void Init()
         {
         }
