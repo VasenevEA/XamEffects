@@ -96,9 +96,8 @@ namespace XamEffects.iOS
                             LongClickHandler();
                         else if (!isLongPressActive)
                             ClickHandler();
-
-                        CancelClickHandler();
                     }
+                    CancelClickHandler();
                     break;
                 default:
                     StopLongPressWaiter();
